@@ -1,0 +1,60 @@
+version: '3'
+services:
+  webserver:
+    image: nginx:stable-alpine
+    container_name: template-webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - template-network
+    depends_on:
+      - db
+      - app
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: template-admin
+    environment:
+      SERVICE_NAME: template-admin
+      SERVICE_TAGS: dev
+    ports:
+      - "9001:9000"
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+    networks:
+      - template-network
+
+  db:
+    image: mysql:5.7.22
+    container_name: template-db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: template
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - lbdata:/var/lib/mysql/
+    networks:
+      - template-network
+
+networks:
+  template-network:
+    driver: bridge
+
+volumes:
+  lbdata:
+    driver: local
